@@ -35,6 +35,7 @@ public final class PacketInterceptorMod implements ClientModInitializer {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
             PacketInterceptionCommand.register(dispatcher)
         );
+        KotlinTest.letsTestThis(LOGGER);
     }
 
     public @NotNull PacketFilter getPacketFilter() {

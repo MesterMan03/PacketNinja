@@ -1,6 +1,11 @@
 # ── Gradle ─────────────────────────────────────────
 .gradle
 build/
+out/
+classes/
+.kotlin
+
+# eclipse
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
