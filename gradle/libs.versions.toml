@@ -1,10 +1,12 @@
 [versions]
 fabric = "0.18.4"
 bits = "0.0.10"
+fabric-kotlin = "1.13.10+kotlin.2.3.20"
 
 [libraries]
 fabric-loader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabric" }
 fabric-api = { group = "net.fabricmc.fabric-api", name = "fabric-api", version.ref = "fabric" }
+fabric-language-kotlin = { group = "net.fabricmc", name = "fabric-language-kotlin", version.ref = "fabric-kotlin" }
 
 bits-api = { group = "com.github.ImBit.Bits", name = "API", version.ref = "bits" }
 adventure-platform = { group = "net.kyori", name = "adventure-platform-fabric", version = "6.8.0" }

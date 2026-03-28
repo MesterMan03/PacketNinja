@@ -6,6 +6,7 @@ plugins {
     id("maven-publish")
     alias(libs.plugins.modrinth.minotaur)
     alias(libs.plugins.errorprone)
+    kotlin("jvm")
 }
 
 group = "xyz.bitsquidd"
@@ -37,12 +38,14 @@ loom {
 }
 
 dependencies {
+    compileOnly(kotlin("stdlib"))
     minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
 
     mappings(loom.officialMojangMappings())
 
     modImplementation(rootProject.libs.fabric.loader)
     modImplementation(rootProject.libs.fabric.api)
+    modImplementation(rootProject.libs.fabric.language.kotlin)
 
     modImplementation(rootProject.libs.adventure.platform)
     include(rootProject.libs.adventure.platform)
