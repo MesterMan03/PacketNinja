@@ -1,10 +1,10 @@
 {
-	"required": true,
-	"package": "xyz.bitsquidd.ninja.mixin",
-	"compatibilityLevel": "JAVA_21",
-	"client": [
-      "MixinConnection"
-    ],
+  "required": true,
+  "package": "xyz.bitsquidd.ninja.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MixinConnection"
+  ],
 	"injectors": {
 		"defaultRequire": 1
 	}
