@@ -9,30 +9,28 @@ package xyz.bitsquidd.ninja.ui
 
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Button
-import net.minecraft.client.gui.components.toasts.SystemToast
+import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import xyz.bitsquidd.ninja.config.ConfigScreen
 
-class OverlayScreen(val parent: Screen?) : Screen(Component.empty()) {
+class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninja")) {
     override fun init() {
-        val button = Button.builder(Component.literal("Hi there")) {
-            this.minecraft.toastManager.addToast(
-                SystemToast.multiline(
-                    this.minecraft,
-                    SystemToast.SystemToastId.NARRATOR_TOGGLE,
-                    Component.literal("Hello World!"),
-                    Component.literal("This is a toast!")
-                )
-            )
-        }.bounds(40, 40, 120, 20).build()
+        addRenderableOnly(StringWidget(title, font))
+        addHeaderButtons()
+    }
 
-        addRenderableWidget(button)
+    private fun addHeaderButtons() {
+        val settingsButton = Button.builder(Component.literal("Settings")) {
+            val configScreen = ConfigScreen.create(this)
+            this.minecraft.setScreen(configScreen)
+        }.bounds(5, 5, font.width("Settings") + 10, 20).build()
+
+        addRenderableWidget(settingsButton)
     }
 
     override fun render(graphics: GuiGraphics, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(graphics, mouseX, mouseY, delta)
-
-        graphics.drawString(font, "Special Button", 40, 40 - font.lineHeight, 0x80FFFFFF.toInt(), true)
     }
 
     override fun onClose() {
