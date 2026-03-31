@@ -64,6 +64,7 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
     private val panelTop = panelLeft + headerHeight + 4
     private val rowHeight = 18
     private val centerLineWidth = 2
+    private val scrollbarWidth = 3
 
     override fun init() {
         addHeaderButtons()
@@ -167,6 +168,8 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         previousVisibleRows = visibleRows
         previousStartIndex = startIndex
 
+        renderTimelineScrollbar(graphics, panelBottom, visibleRows, maxScroll)
+
         graphics.drawString(
             font,
             Component.literal("Scroll to browse packet history"),
@@ -261,6 +264,27 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
 
         controlsScrollOffset = (controlsScrollOffset - verticalAmount.roundToInt()).coerceIn(0, maxScroll)
         return true
+    }
+
+    private fun renderTimelineScrollbar(graphics: GuiGraphics, panelBottom: Int, visibleRows: Int, maxScroll: Int) {
+        if (maxScroll <= 0 || cachedPackets.isEmpty()) return
+
+        val trackLeft = timelineRight() - 6
+        val trackRight = trackLeft + scrollbarWidth
+        val trackTop = panelTop + 2
+        val trackBottom = panelBottom - 2
+        val trackHeight = trackBottom - trackTop
+        if (trackHeight <= 0) return
+
+        val rawThumbHeight = ((visibleRows.toFloat() / cachedPackets.size.toFloat()) * trackHeight).roundToInt()
+        val thumbHeight = rawThumbHeight.coerceIn(10, trackHeight)
+        val thumbTravel = trackHeight - thumbHeight
+        val progress = scrollOffset.toFloat() / maxScroll.toFloat()
+        val thumbTop = trackTop + (thumbTravel * progress).roundToInt()
+        val thumbBottom = thumbTop + thumbHeight
+
+        graphics.fill(trackLeft, trackTop, trackRight, trackBottom, 0x60303030)
+        graphics.fill(trackLeft, thumbTop, trackRight, thumbBottom, 0xC0CFCFCF.toInt())
     }
 
     private fun ensurePacketNameWidgetPool(requiredSize: Int) {

@@ -33,12 +33,8 @@ public final class PacketLogger {
         }
 
         Duration delayRequired = Config.packetDelay;
-        if(!delayRequired.isPositive()) {
-            return;
-        }
-
         Instant currentTime = Instant.now();
-        if (Duration.between(lastPacketTime, currentTime).compareTo(delayRequired) < 0) {
+        if (delayRequired.isPositive() && Duration.between(lastPacketTime, currentTime).compareTo(delayRequired) < 0) {
             // TODO: Displaying that no packet was "sent" should be re-thought.
             //  This doesn't help if there are lots of packets, it still spams the chat with "..."
 //                sendChatMessage(
