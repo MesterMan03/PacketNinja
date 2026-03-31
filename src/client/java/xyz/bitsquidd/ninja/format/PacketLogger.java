@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.protocol.Packet;
 import org.jspecify.annotations.NullMarked;
 
+import xyz.bitsquidd.ninja.PacketCache;
 import xyz.bitsquidd.ninja.PacketRegistry;
 import xyz.bitsquidd.ninja.config.Config;
 import xyz.bitsquidd.ninja.handler.PacketHandler;
@@ -25,6 +26,7 @@ public final class PacketLogger {
         if (handler == null) return;
 
         Duration delayRequired = Config.packetDelay;
+        var displayInChat = true;
         if (delayRequired.isPositive()) {
             Instant currentTime = Instant.now();
             if (Duration.between(lastPacketTime, currentTime).compareTo(delayRequired) < 0) {
@@ -34,13 +36,16 @@ public final class PacketLogger {
 //                      Component.text("...", NamedTextColor.GRAY)
 //                            .hoverEvent(HoverEvent.showText(Component.text(String.format("Too many packets sent within %sms, hiding.", delayRequired))))
 //                );
-                return;
+                displayInChat = false;
             }
             lastPacketTime = currentTime;
         }
 
         PacketInfoBundle infoBundle = handler.getPacketInfo(packet);
-        sendChatMessage(infoBundle.format());
+        if(displayInChat) {
+            sendChatMessage(infoBundle.format());
+        }
+        PacketCache.addPacket(infoBundle);
     }
 
     public static void sendChatMessage(final Component component) {

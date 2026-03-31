@@ -39,4 +39,11 @@ public final class PacketInfoBundle {
         return infoBuilder.build();
     }
 
+    public PacketType getType() {
+        return type;
+    }
+
+    public Component getName() {
+        return name;
+    }
 }

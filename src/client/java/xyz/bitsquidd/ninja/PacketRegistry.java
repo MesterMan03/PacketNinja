@@ -22,7 +22,7 @@ public final class PacketRegistry {
             ClassGraph.Scanner.getClasses(HANDLER_PACKAGE, PacketHandler.class)
               .forEach(clazz -> Safety.safeExecute(() -> registerHandler(ClassGraph.Instance.create(clazz))));
         } catch (Exception e) {
-            PacketInterceptorMod.LOGGER.error("Failed to register packet handlers");
+            PacketInterceptorMod.LOGGER.error("Failed to register packet handlers", e);
         }
     }
 
