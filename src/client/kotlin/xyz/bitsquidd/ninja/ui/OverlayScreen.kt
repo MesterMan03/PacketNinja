@@ -7,9 +7,7 @@
 
 package xyz.bitsquidd.ninja.ui
 
-import com.google.gson.Gson
 import com.google.gson.JsonParser
-import com.google.gson.stream.JsonReader
 import com.mojang.serialization.JsonOps
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.client.gui.GuiGraphics
@@ -29,8 +27,13 @@ import kotlin.math.roundToInt
 class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninja")) {
     private var cachedVersion: Long = -1L
     private var cachedPackets: List<PacketInfoBundle> = emptyList()
+    private var cachedPacketNames: List<Component> = emptyList()
 
     private val packetNameWidgets = mutableListOf<StringWidget>()
+    private val adventureSerializer = GsonComponentSerializer.gson()
+
+    private var previousVisibleRows = -1
+    private var previousStartIndex = Int.MIN_VALUE
 
     // 0 = newest packet at top of the viewport
     private var scrollOffset: Int = 0
@@ -77,21 +80,28 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         val visibleRows = max(1, (panelBottom - panelTop) / rowHeight)
         val maxScroll = max(0, cachedPackets.size - visibleRows)
         scrollOffset = scrollOffset.coerceIn(0, maxScroll)
+        ensurePacketNameWidgetPool(visibleRows)
 
         // newest at top
         val startIndex = cachedPackets.size - 1 - scrollOffset
         val endIndex = max(-1, startIndex - visibleRows + 1)
+        val layoutChanged = previousVisibleRows != visibleRows || previousStartIndex != startIndex
 
         var row = 0
         for (i in startIndex downTo endIndex) {
             if (i !in cachedPackets.indices) continue
 
             val packet = cachedPackets[i]
+            val packetName = cachedPacketNames[i]
             val y = panelTop + row * rowHeight
 
-            drawPacketRow(graphics, packet, centerX, y, rowHeight)
+            drawPacketRow(graphics, packet, packetName, centerX, y, row, layoutChanged, mouseX, mouseY, delta)
             row++
         }
+
+        hideUnusedPacketNameWidgets(row)
+        previousVisibleRows = visibleRows
+        previousStartIndex = startIndex
 
         graphics.drawString(
             font,
@@ -108,33 +118,40 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
     private fun drawPacketRow(
         graphics: GuiGraphics,
         packet: PacketInfoBundle,
+        packetName: Component,
         centerX: Int,
         y: Int,
-        height: Int
+        row: Int,
+        layoutChanged: Boolean,
+        mouseX: Int,
+        mouseY: Int,
+        delta: Float
     ) {
         val isIncoming = packet.type == PacketType.CLIENTBOUND
         val rowColor = packet.type.primaryColor.value() or 0xFF000000.toInt()
-        val textColor = 0xFFFFFFFF.toInt()
-
-        val label = "packet.name" // replace with packet.name.string later
-
-        // we need to convert Adventure Component to native Component
-        // right now this method is extremely ugly, be advised
-        val json = GsonComponentSerializer.gson().serialize(packet.name)
-        val native = ComponentSerialization.CODEC.decode(JsonOps.INSTANCE, JsonParser.parseString(json)).resultOrPartial().getOrNull()?.first ?: Component.literal("Unknown")
+        val widget = packetNameWidgets[row]
 
         // Connection dot at the center line
-        graphics.fill(centerX - 2, y + (height / 2) - 2, centerX + 3, y + (height / 2) + 3, rowColor)
+        graphics.fill(centerX - 2, y + (rowHeight / 2) - 2, centerX + 3, y + (rowHeight / 2) + 3, rowColor)
 
         // Connector line from center to each side
         if (isIncoming) {
-            graphics.fill(centerX + 2, y + (height / 2) - 1, centerX + 28, y + (height / 2) + 1, rowColor)
-            graphics.drawString(font, label, centerX + 34, y + 4, textColor, false)
+            graphics.fill(centerX + 2, y + (rowHeight / 2) - 1, centerX + 28, y + (rowHeight / 2) + 1, rowColor)
+            if (layoutChanged || widget.message != packetName) {
+                widget.setMessage(packetName)
+                widget.setPosition(centerX + 34, y + 4)
+            }
         } else {
-            val textWidth = font.width(label)
-            graphics.fill(centerX - 28, y + (height / 2) - 1, centerX - 2, y + (height / 2) + 1, rowColor)
-            graphics.drawString(font, label, centerX - 34 - textWidth, y + 4, textColor, false)
+            val textWidth = font.width(packetName)
+            graphics.fill(centerX - 28, y + (rowHeight / 2) - 1, centerX - 2, y + (rowHeight / 2) + 1, rowColor)
+            if (layoutChanged || widget.message != packetName) {
+                widget.setMessage(packetName)
+                widget.setPosition(centerX - 34 - textWidth, y + 4)
+            }
         }
+
+        widget.visible = true
+        widget.render(graphics, mouseX, mouseY, delta)
     }
 
     private fun refreshCache() {
@@ -142,7 +159,9 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         if (currentVersion != cachedVersion) {
             val snapshot = PacketCache.snapshot()
             cachedPackets = snapshot.packets
+            cachedPacketNames = snapshot.packets.map { toNativeComponent(it.name) }
             cachedVersion = snapshot.version
+            previousStartIndex = Int.MIN_VALUE
 
             val visibleRows = max(1, (height - 6 - panelTop) / rowHeight)
             val maxScroll = max(0, cachedPackets.size - visibleRows)
@@ -161,6 +180,31 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         // TODO: perhaps configurable scroll direction?
         scrollOffset = (scrollOffset - verticalAmount.roundToInt()).coerceIn(0, maxScroll)
         return true
+    }
+
+    private fun ensurePacketNameWidgetPool(requiredSize: Int) {
+        while (packetNameWidgets.size < requiredSize) {
+            packetNameWidgets += StringWidget(Component.empty(), font)
+        }
+
+        while (packetNameWidgets.size > requiredSize) {
+            packetNameWidgets.removeLast()
+        }
+    }
+
+    private fun hideUnusedPacketNameWidgets(fromIndex: Int) {
+        for (i in fromIndex until packetNameWidgets.size) {
+            packetNameWidgets[i].visible = false
+        }
+    }
+
+    private fun toNativeComponent(component: net.kyori.adventure.text.Component): Component {
+        val json = adventureSerializer.serialize(component)
+        return ComponentSerialization.CODEC.decode(JsonOps.INSTANCE, JsonParser.parseString(json))
+            .resultOrPartial()
+            .getOrNull()
+            ?.first
+            ?: Component.literal("Unknown")
     }
 
     override fun onClose() {
