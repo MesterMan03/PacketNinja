@@ -3,10 +3,13 @@ package xyz.bitsquidd.ninja.mixin;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.Connection;
+import net.minecraft.network.PacketListener;
 import net.minecraft.network.protocol.BundlePacket;
 import net.minecraft.network.protocol.Packet;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -15,10 +18,17 @@ import xyz.bitsquidd.ninja.PacketInterceptorMod;
 
 @Mixin(Connection.class)
 public class MixinConnection {
+    @Shadow private PacketListener packetListener;
+
+    private boolean shouldLogForClientConnection() {
+        // In singleplayer, both client and integrated-server Connection instances exist.
+        // Only log packets from the client-side connection to avoid duplicate entries.
+        return packetListener instanceof ClientPacketListener;
+    }
 
     @Inject(method = "doSendPacket", at = @At("HEAD"))
     public void doSendPacket(Packet<?> packet, ChannelFutureListener channelFutureListener, boolean bl, CallbackInfo ci) {
-        if (PacketInterceptorMod.logPackets && Minecraft.getInstance().player != null) {
+        if (PacketInterceptorMod.logPackets && Minecraft.getInstance().player != null && shouldLogForClientConnection()) {
             if (packet instanceof BundlePacket<?> bundlePacket) {
                 bundlePacket.subPackets().forEach(PacketInterceptorMod::logPacket);
             } else {
@@ -29,7 +39,7 @@ public class MixinConnection {
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/Connection;genericsFtw(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;)V"))
     public void readPacket(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {
-        if (PacketInterceptorMod.logPackets && Minecraft.getInstance().player != null) {
+        if (PacketInterceptorMod.logPackets && Minecraft.getInstance().player != null && shouldLogForClientConnection()) {
             if (packet instanceof BundlePacket<?> bundlePacket) {
                 bundlePacket.subPackets().forEach(PacketInterceptorMod::logPacket);
             } else {
