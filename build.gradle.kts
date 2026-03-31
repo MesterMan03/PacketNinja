@@ -1,3 +1,4 @@
+import com.diffplug.spotless.LineEnding
 import net.fabricmc.loom.task.RemapJarTask
 import net.ltgt.gradle.errorprone.errorprone
 
@@ -6,6 +7,7 @@ plugins {
     id("maven-publish")
     alias(libs.plugins.modrinth.minotaur)
     alias(libs.plugins.errorprone)
+    alias(libs.plugins.spotless)
     kotlin("jvm")
 }
 
@@ -61,6 +63,22 @@ dependencies {
     include(rootProject.libs.clothconfig)
 
     errorprone(rootProject.libs.errorprone)
+}
+
+spotless {
+    kotlin {
+        toggleOffOn()
+        ktlint("1.8.0").editorConfigOverride(
+            mapOf(
+                "ktlint_standard_no-unused-imports" to "enabled",
+                "max_line_length" to "140",
+            ),
+        )
+        lineEndings = LineEnding.GIT_ATTRIBUTES
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+    }
 }
 
 tasks {

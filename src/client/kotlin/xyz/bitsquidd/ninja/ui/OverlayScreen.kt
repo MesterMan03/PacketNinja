@@ -16,9 +16,9 @@ import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.ComponentSerialization
+import xyz.bitsquidd.ninja.PacketCache
 import xyz.bitsquidd.ninja.PacketFilter
 import xyz.bitsquidd.ninja.PacketInterceptorMod
-import xyz.bitsquidd.ninja.PacketCache
 import xyz.bitsquidd.ninja.PacketRegistry
 import xyz.bitsquidd.ninja.config.ConfigScreen
 import xyz.bitsquidd.ninja.format.PacketInfoBundle
@@ -403,9 +403,8 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         return max(1, (bottom - controlsListTop()) / controlsRowHeight)
     }
 
-    private fun isMouseOverControlsPanel(mouseX: Double, mouseY: Double): Boolean {
-        return mouseX >= controlsPanelLeft() && mouseX <= controlsPanelRight() && mouseY >= panelTop && mouseY <= height - 6
-    }
+    private fun isMouseOverControlsPanel(mouseX: Double, mouseY: Double): Boolean =
+        mouseX >= controlsPanelLeft() && mouseX <= controlsPanelRight() && mouseY >= panelTop && mouseY <= height - 6
 
     override fun onClose() {
         minecraft.setScreen(parent)
