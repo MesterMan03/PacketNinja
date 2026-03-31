@@ -7,24 +7,23 @@
 
 package xyz.bitsquidd.ninja.ui
 
-import com.google.gson.JsonParser
-import com.mojang.serialization.JsonOps
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import net.minecraft.client.gui.GuiGraphics
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.StringWidget
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.ComponentSerialization
+import net.minecraft.network.chat.HoverEvent
 import xyz.bitsquidd.ninja.PacketCache
 import xyz.bitsquidd.ninja.PacketFilter
 import xyz.bitsquidd.ninja.PacketInterceptorMod
 import xyz.bitsquidd.ninja.PacketRegistry
 import xyz.bitsquidd.ninja.config.ConfigScreen
+import xyz.bitsquidd.ninja.edit
 import xyz.bitsquidd.ninja.format.PacketInfoBundle
 import xyz.bitsquidd.ninja.handler.PacketHandler
 import xyz.bitsquidd.ninja.handler.PacketType
-import kotlin.jvm.optionals.getOrNull
+import xyz.bitsquidd.ninja.native
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -67,6 +66,11 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
     private val scrollbarWidth = 3
 
     override fun init() {
+        // Screen#init can run multiple times when returning from child screens.
+        // Reset internal widget caches so references always match current renderables.
+        handlerToggleButtons.clear()
+        handlerStateCache.clear()
+
         addHeaderButtons()
         addControlsWidgets()
         refreshCache()
@@ -170,15 +174,6 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
 
         renderTimelineScrollbar(graphics, panelBottom, visibleRows, maxScroll)
 
-        graphics.drawString(
-            font,
-            Component.literal("Scroll to browse packet history"),
-            10,
-            height - 14,
-            0xA0A0A0,
-            false
-        )
-
         super.render(graphics, mouseX, mouseY, delta)
     }
 
@@ -198,6 +193,13 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         val rowColor = packet.type.primaryColor.value() or 0xFF000000.toInt()
         val widget = packetNameWidgets[row]
 
+        val finalMessage = packetName.edit {
+            val description = packet.format()
+            val hoverEvent = HoverEvent.ShowText(description.native)
+            val style = packetName.style.withHoverEvent(hoverEvent)
+            setStyle(style)
+        }
+
         // Connection dot at the center line
         graphics.fill(centerX - 2, y + (rowHeight / 2) - 2, centerX + 3, y + (rowHeight / 2) + 3, rowColor)
 
@@ -205,14 +207,14 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         if (isIncoming) {
             graphics.fill(centerX + 2, y + (rowHeight / 2) - 1, centerX + 28, y + (rowHeight / 2) + 1, rowColor)
             if (layoutChanged || widget.message != packetName) {
-                widget.setMessage(packetName)
+                widget.setMessage(finalMessage)
                 widget.setPosition(centerX + 34, y + 4)
             }
         } else {
             val textWidth = font.width(packetName)
             graphics.fill(centerX - 28, y + (rowHeight / 2) - 1, centerX - 2, y + (rowHeight / 2) + 1, rowColor)
             if (layoutChanged || widget.message != packetName) {
-                widget.setMessage(packetName)
+                widget.setMessage(finalMessage)
                 widget.setPosition(centerX - 34 - textWidth, y + 4)
             }
         }
@@ -226,7 +228,7 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         if (currentVersion != cachedVersion) {
             val snapshot = PacketCache.snapshot()
             cachedPackets = snapshot.packets
-            cachedPacketNames = snapshot.packets.map { toNativeComponent(it.name) }
+            cachedPacketNames = snapshot.packets.map { it.name.native }
             cachedVersion = snapshot.version
             previousStartIndex = Int.MIN_VALUE
 
@@ -301,15 +303,6 @@ class OverlayScreen(val parent: Screen?) : Screen(Component.literal("Packet Ninj
         for (i in fromIndex until packetNameWidgets.size) {
             packetNameWidgets[i].visible = false
         }
-    }
-
-    private fun toNativeComponent(component: net.kyori.adventure.text.Component): Component {
-        val json = adventureSerializer.serialize(component)
-        return ComponentSerialization.CODEC.decode(JsonOps.INSTANCE, JsonParser.parseString(json))
-            .resultOrPartial()
-            .getOrNull()
-            ?.first
-            ?: Component.literal("Unknown")
     }
 
     private fun updateHeaderButtonStates() {

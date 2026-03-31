@@ -34,7 +34,6 @@ public final class PacketInfoBundle {
 
         infoBuilder.append(Component.text(type.icon + " "));
         infoBuilder.append(PacketInfo.list(name.decorate(TextDecoration.BOLD), info).format(type));
-        infoBuilder.appendNewline();
 
         return infoBuilder.build();
     }
