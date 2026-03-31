@@ -25,27 +25,30 @@ public final class PacketLogger {
         PacketHandler<?> handler = PacketRegistry.getHandlerForPacket(packet);
         if (handler == null) return;
 
+        PacketInfoBundle infoBundle = handler.getPacketInfo(packet);
+        PacketCache.addPacket(infoBundle);
+
+        if(!Config.showInChat) {
+            return;
+        }
+
         Duration delayRequired = Config.packetDelay;
-        var displayInChat = true;
-        if (delayRequired.isPositive()) {
-            Instant currentTime = Instant.now();
-            if (Duration.between(lastPacketTime, currentTime).compareTo(delayRequired) < 0) {
-                // TODO: Displaying that no packet was "sent" should be re-thought.
-                //  This doesn't help if there are lots of packets, it still spams the chat with "..."
+        if(!delayRequired.isPositive()) {
+            return;
+        }
+
+        Instant currentTime = Instant.now();
+        if (Duration.between(lastPacketTime, currentTime).compareTo(delayRequired) < 0) {
+            // TODO: Displaying that no packet was "sent" should be re-thought.
+            //  This doesn't help if there are lots of packets, it still spams the chat with "..."
 //                sendChatMessage(
 //                      Component.text("...", NamedTextColor.GRAY)
 //                            .hoverEvent(HoverEvent.showText(Component.text(String.format("Too many packets sent within %sms, hiding.", delayRequired))))
 //                );
-                displayInChat = false;
-            }
-            lastPacketTime = currentTime;
-        }
-
-        PacketInfoBundle infoBundle = handler.getPacketInfo(packet);
-        if(displayInChat) {
+        } else {
             sendChatMessage(infoBundle.format());
         }
-        PacketCache.addPacket(infoBundle);
+        lastPacketTime = currentTime;
     }
 
     public static void sendChatMessage(final Component component) {

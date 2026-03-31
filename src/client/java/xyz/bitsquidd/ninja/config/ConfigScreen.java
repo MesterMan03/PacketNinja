@@ -6,7 +6,9 @@ import net.minecraft.network.chat.Component;
 
 import java.time.Duration;
 
-public class ConfigScreen {
+public final class ConfigScreen {
+    private ConfigScreen() {}
+
     public static Screen create(Screen parent) {
         var builder = ConfigBuilder.create()
               .setParentScreen(parent)
@@ -22,7 +24,7 @@ public class ConfigScreen {
                     0,
                     2000L
               )
-              .setDefaultValue(500L)
+              .setDefaultValue(ConfigKt.DEFAULT_PACKET_DELAY)
               .setTextGetter(value -> {
                   long step = 50L;
                   long snapped = (value / step) * step;
@@ -37,6 +39,22 @@ public class ConfigScreen {
                   Config.packetDelay = Duration.ofMillis((newValue / step) * step);
                   Config.save();
               })
+              .build()
+        );
+
+        general.addEntry(entryBuilder
+              .startBooleanToggle(
+                    Component.literal("Show in Chat"),
+                    Config.showInChat
+              )
+            .setTooltip(Component.literal(
+              "Whether to display packets in the chat.\n" +
+                "Setting this to false will only log packets on the overlay."
+            ))
+            .setSaveConsumer(newValue -> {
+                Config.showInChat = newValue;
+                Config.save();
+            })
               .build()
         );
 

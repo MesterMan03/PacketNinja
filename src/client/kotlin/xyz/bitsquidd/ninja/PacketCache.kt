@@ -13,10 +13,7 @@ import java.util.concurrent.atomic.AtomicLong
 // TODO: config
 private const val CACHE_SIZE: Int = 1000
 
-data class PacketSnapshot(
-    val version: Long,
-    val packets: List<PacketInfoBundle>
-)
+data class PacketSnapshot(val version: Long, val packets: List<PacketInfoBundle>)
 
 object PacketCache {
     private val lock = Any()

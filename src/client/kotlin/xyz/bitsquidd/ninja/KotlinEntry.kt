@@ -18,12 +18,14 @@ object KotlinEntry {
 
     @JvmStatic
     fun initialize() {
-        val overlayKey = KeyBindingHelper.registerKeyBinding(KeyMapping(
-            "key.packet-interceptor.overlay",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_RIGHT_SHIFT,
-            keyCategory
-        ))
+        val overlayKey = KeyBindingHelper.registerKeyBinding(
+            KeyMapping(
+                "key.packet-interceptor.overlay",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_RIGHT_SHIFT,
+                keyCategory
+            )
+        )
 
         val keyField = KeyMapping::class.java.declaredFields
             // we use lastOrNull as KeyMapping has two Key fields, the defaultKey and key, which is what we're looking for
@@ -36,7 +38,7 @@ object KotlinEntry {
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             val currentScreen = client.screen
             // don't change in certain screens
-            if(currentScreen is KeyBindsScreen || currentScreen is ChatScreen) {
+            if (currentScreen is KeyBindsScreen || currentScreen is ChatScreen) {
                 return@register
             }
 
@@ -44,19 +46,19 @@ object KotlinEntry {
             val key = keyField.get(overlayKey) as InputConstants.Key
             val isDown = GLFW.glfwGetKey(window, key.value) == GLFW.GLFW_PRESS
 
-            if(!isDown) {
+            if (!isDown) {
                 return@register
             }
 
             val now = Util.getMillis()
             val delta = now - lastOpened
-            if(delta < 150) {
+            if (delta < 150) {
                 // too early, abort
                 return@register
             }
             lastOpened = now
 
-            if(currentScreen is OverlayScreen) {
+            if (currentScreen is OverlayScreen) {
                 client.setScreen(currentScreen.parent)
             } else {
                 client.setScreen(OverlayScreen(currentScreen))
